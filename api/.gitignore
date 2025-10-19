@@ -1,0 +1,7 @@
+# C# build output folders
+[Bb]in/
+[Oo]bj/
+
+# User-specific files
+*.user
+appsettings.Development.json
