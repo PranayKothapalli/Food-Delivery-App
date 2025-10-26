@@ -42,20 +42,21 @@ if (app.Environment.IsDevelopment())
 // GET API endpoint to get all restaurants
 app.MapGet("/restaurants", (RestaurantDb db) =>
 {
-    return db.Restaurants.ToList();
+    return db.Restaurants.Include(r => r.MenuItems).ToList();
 });
 
 // GET a single restaurant from the database
 app.MapGet("/restaurants/{id}", (RestaurantDb db, int id) =>
 {
-    var restaurant = db.Restaurants.Find(id);
+    var restaurant = db.Restaurants
+    .Include(r => r.MenuItems)
+    .FirstOrDefault(r => r.Id == id);
     return restaurant != null ? Results.Ok(restaurant) : Results.NotFound();
 });
 
 // Endpoint to create (POST) a new restaurant
 app.MapPost("/restaurants", (RestaurantDb db, Restaurant restaurant) =>
 {
-    // In a real app, you would generate a new Id. We'll skip that for now.
     db.Restaurants.Add(restaurant);
     db.SaveChanges();
     return Results.Created($"/restaurants/{restaurant.Id}", restaurant);
@@ -70,6 +71,8 @@ app.MapPut("/restaurants/{id}", (RestaurantDb db, int id, Restaurant updatedRest
 
     restaurant.Name = updatedRestaurant.Name;
     restaurant.Rating = updatedRestaurant.Rating;
+    restaurant.Location = updatedRestaurant.Location;
+    restaurant.EstablishedDate = updatedRestaurant.EstablishedDate;
 
     db.SaveChanges(); // Writes the changes to the database
 
@@ -89,16 +92,81 @@ app.MapDelete("/restaurants/{id}", (RestaurantDb db, int id) =>
     return Results.NoContent();
 });
 
+//Api endpoints for MenuItems can be added similarly...
+app.MapGet("/restaurants/{id}/menuItems", (RestaurantDb db, int id) =>
+{
+    // Get menu items for a specific restaurant
+    var menuItems = db.MenuItems.Where(m => m.RestaurantId == id).ToList();
+    return Results.Ok(menuItems);
+});
+
+app.MapPost("/restaurants/{id}/menuItems", (RestaurantDb db, int id, MenuItem menuItem) =>
+{
+    if (db.Restaurants.Find(id) is null)
+    {
+        return Results.NotFound();
+    }
+    //add a new menu item to a specific restaurant
+    menuItem.RestaurantId = id;
+    db.MenuItems.Add(menuItem);
+    db.SaveChanges();
+    return Results.Created($"/restaurants/{id}/menuitems/{menuItem.Id}", menuItem);
+});
+
+app.MapPut("/restaurants/{id}/menuItems/{menuItemId}", (RestaurantDb db, int id, int menuItemId, MenuItem updatedMenuItem) =>
+{
+    // Update a menu item for a specific restaurant
+    var existingMenuItem = db.MenuItems.Find(menuItemId);
+    if (existingMenuItem is null) return Results.NotFound();
+    // Check if the item belongs to the correct restaurant
+    if (existingMenuItem.RestaurantId != id) return Results.NotFound();
+
+    existingMenuItem.Name = updatedMenuItem.Name;
+    existingMenuItem.Description = updatedMenuItem.Description;
+    existingMenuItem.Price = updatedMenuItem.Price;
+    existingMenuItem.IsAvailable = updatedMenuItem.IsAvailable;
+    existingMenuItem.RestaurantId = id;
+
+    db.SaveChanges();
+    return Results.NoContent();
+});
+
+app.MapDelete("restaurants/{id}/menuItems/{menuItemId}", (RestaurantDb db, int id, int menuItemId) =>
+{
+    // Delete a menu item from a specific restaurant
+    var menuItem = db.MenuItems.Find(menuItemId);
+
+    if (menuItem is null) return Results.NotFound();
+    if (menuItem.RestaurantId != id) return Results.NotFound();
+
+    db.MenuItems.Remove(menuItem);
+    db.SaveChanges();
+
+    return Results.NoContent();
+});
+
 app.Run();
 
 // The blueprint for our data. I've added an Id property.
 public class Restaurant
 {
     public int Id { get; set; }
-    public string Name { get; set; }
+    public required string Name { get; set; }
     public int Rating { get; set; }
     public string? Location { get; set; }
     public DateTime? EstablishedDate { get; set; }
+
+    public List<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
+}
+
+public class MenuItem
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public decimal Price { get; set; }
+    public bool IsAvailable { get; set; }
+    public int RestaurantId { get; set; }
 }
 
 public class RestaurantDb : DbContext
@@ -106,4 +174,15 @@ public class RestaurantDb : DbContext
     public RestaurantDb(DbContextOptions<RestaurantDb> options) : base(options) { }
 
     public DbSet<Restaurant> Restaurants { get; set; }
+    public DbSet<MenuItem> MenuItems { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // This line tells EF Core how to build the 'Price' column
+        modelBuilder.Entity<MenuItem>()
+            .Property(p => p.Price)
+            .HasColumnType("decimal(18, 2)");
+    }
 }
+
+
