@@ -93,7 +93,7 @@ app.MapDelete("/restaurants/{id}", (RestaurantDb db, int id) =>
     return Results.NoContent();
 });
 
-//Api endpoints for MenuItems can be added similarly...
+//Api endpoints for MenuItems can be added similarly
 app.MapGet("/restaurants/{id}/menuItems", (RestaurantDb db, int id) =>
 {
     // Get menu items for a specific restaurant
