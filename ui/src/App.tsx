@@ -24,6 +24,11 @@ function App() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); // Prevents the browser from reloading
 
+        if (newRating < 0 || newRating > 5) {
+            alert('Rating must be between 0 and 5.');
+            return; // Stop the function here
+        }
+
         const newRestaurant = {
             name: newName,
             rating: newRating,
@@ -93,8 +98,36 @@ function App() {
         }
     };
 
+    const handleDelete = async (id: number) => {
+        // Show a native browser confirmation dialog
+        const isConfirmed = window.confirm(
+            'Are you sure you want to delete this restaurant?'
+        );
+
+        // If the user clicks "Cancel", stop the function
+        if (!isConfirmed) {
+            return;
+        }
+
+        try {
+            // Send the DELETE request to the API
+            const response = await fetch(`http://localhost:5177/restaurants/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                // If successful, update the UI state by filtering out the deleted restaurant
+                setRestaurants(restaurants.filter(r => r.id !== id));
+            } else {
+                console.error('Failed to delete restaurant from server.');
+            }
+        } catch (error) {
+            console.error('Failed to delete restaurant:', error);
+        }
+    };
+
     return (
-        <div>
+        <div className="App">
             {editingRestaurant ? (
                 // IF TRUE: Show the edit form
                 <EditRestaurantForm
@@ -106,53 +139,73 @@ function App() {
                 // ELSE: Show the original view
                 <>
                     <h1>Restaurants</h1>
-                    <form
-                        onSubmit={handleSubmit}>
-                        <h2>Add a New Restaurant</h2>
-                        <div>
-                            <label>Name: </label>
-                            <input
-                                value={newName}
-                                onChange={e => setNewName(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label>Rating: </label>
-                            <input type="number"
-                                value={newRating}
-                                onChange={e => setNewRating(parseInt(e.target.value, 10))}
-                            />
-                        </div>
-                        <div>
-                            <label>Location: </label>
-                            <input
-                                value={newLocation}
-                                onChange={e => setNewLocation(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label>Established Date: </label>
-                            <input
-                                type="date"
-                                value={newEstablishedDate}
-                                onChange={e => setNewEstablishedDate(e.target.value)}
-                            />
-                        </div>
-                        <button type="submit">Add Restaurant</button>
-                    </form>
+                        <div className="main-layout">
 
-                    <hr />
+                        {/* Column 1: The Form */}
+                        <div className="form-container">
+                            <form
+                                onSubmit={handleSubmit}>
+                                <h2>Add a New Restaurant</h2>
+                                <div>
+                                    <label>Name: </label>
+                                    <input
+                                        value={newName}
+                                        onChange={e => setNewName(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label>Rating: </label>
+                                    <input type="number"
+                                        value={newRating}
+                                        onChange={e => setNewRating(parseInt(e.target.value, 10))}
+                                        min="0"
+                                        max="5"
+                                    />
+                                </div>
+                                <div>
+                                    <label>Location: </label>
+                                    <input
+                                        value={newLocation}
+                                        onChange={e => setNewLocation(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label>Established Date: </label>
+                                    <input
+                                        type="date"
+                                        value={newEstablishedDate}
+                                        onChange={e => setNewEstablishedDate(e.target.value)}
+                                    />
+                                </div>
+                                <button type="submit">Add Restaurant</button>
+                            </form>
+                        </div>
 
-                    <ul>
-                        {restaurants.map(restaurant => (
-                            <li key={restaurant.id}>
-                                {restaurant.name} - Rating: {restaurant.rating}/5
-                                {restaurant.location && <div><em>Location: {restaurant.location}</em></div>}
-                                {restaurant.establishedDate && <div><em>Established: {new Date(restaurant.establishedDate).toLocaleDateString()}</em></div>}
-                                <button onClick={() => setEditingRestaurant(restaurant)}>Edit</button>
-                            </li>
-                        ))}
-                    </ul>
+                        {/* Column 2: The List */}
+                        <div className="list-container">
+                            <ul>
+                                {restaurants.map(restaurant => (
+                                    <li key={restaurant.id}>
+                                        {restaurant.name} - Rating: {restaurant.rating}/5
+                                        {restaurant.location && <div><em>Location: {restaurant.location}</em></div>}
+                                        {restaurant.establishedDate && <div><em>Established: {new Date(restaurant.establishedDate).toLocaleDateString()}</em></div>}
+
+                                        {/* New container for buttons */}
+                                        <div className="card-buttons">
+                                            <button onClick={() => setEditingRestaurant(restaurant)}>Edit</button>
+
+                                            <button
+                                                className="delete-button"
+                                                onClick={() => handleDelete(restaurant.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
                 </>
             )}
         </div>
