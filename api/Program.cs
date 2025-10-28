@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+using FoodDeliveryApi.Data;
+using FoodDeliveryApi.Models;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -146,43 +147,3 @@ app.MapDelete("restaurants/{id}/menuItems/{menuItemId}", (RestaurantDb db, int i
 });
 
 app.Run();
-
-// The blueprint for our data. I've added an Id property.
-public class Restaurant
-{
-    public int Id { get; set; }
-    public required string Name { get; set; }
-    public int Rating { get; set; }
-    public string? Location { get; set; }
-    public DateTime? EstablishedDate { get; set; }
-
-    public List<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
-}
-
-public class MenuItem
-{
-    public int Id { get; set; }
-    public required string Name { get; set; }
-    public string? Description { get; set; }
-    public decimal Price { get; set; }
-    public bool IsAvailable { get; set; }
-    public int RestaurantId { get; set; }
-}
-
-public class RestaurantDb : DbContext
-{
-    public RestaurantDb(DbContextOptions<RestaurantDb> options) : base(options) { }
-
-    public DbSet<Restaurant> Restaurants { get; set; }
-    public DbSet<MenuItem> MenuItems { get; set; }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        // This line tells EF Core how to build the 'Price' column
-        modelBuilder.Entity<MenuItem>()
-            .Property(p => p.Price)
-            .HasColumnType("decimal(18, 2)");
-    }
-}
-
-
