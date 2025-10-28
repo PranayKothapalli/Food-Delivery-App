@@ -19,14 +19,19 @@ export function EditRestaurantForm({ initialData, onSave, onCancel }: EditFormPr
     const [formData, setFormData] = useState(initialData);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type } = e.target;
+        setFormData(prev => ({ ...prev, [name]: type === 'number' ? parseInt(value) || 0 : value }));
     };
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
-    };
+        const rating = Number(formData.rating);
+        if (rating < 0 || rating > 5) {
+            alert('Rating must be between 0 and 5.');
+            return; // Stop the function here
+        }
+        onSave({ ...formData, rating: rating });
+    };   
 
     return (
         <form onSubmit={handleSave}>
@@ -36,8 +41,8 @@ export function EditRestaurantForm({ initialData, onSave, onCancel }: EditFormPr
                 <input name="name" value={formData.name} onChange={handleChange} />
             </div>
             <div>
-                <label>Rating: </label>
-                <input name="rating" type="number" value={formData.rating} onChange={handleChange} />
+                <label>Rating: </label>    
+                <input name="rating" type="number" value={formData.rating} onChange={handleChange} min="0" max="5" />
             </div>
             <div>
                 <label>Location: </label>
